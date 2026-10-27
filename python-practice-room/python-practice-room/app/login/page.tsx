@@ -6,6 +6,7 @@ import { getSupabase } from "@/lib/supabase";
 
 type Mode = "login" | "signup";
 
+// หน้าล็อกอิน/สมัครสมาชิกสำหรับนักเรียน
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
@@ -46,18 +47,18 @@ export default function LoginPage() {
           router.push("/");
           router.refresh();
         } else {
-          // กรณีเปิดให้ยืนยันอีเมลใน Supabase
           setInfo("สมัครสำเร็จ กรุณาตรวจอีเมลเพื่อยืนยัน แล้วกลับมาเข้าสู่ระบบ");
         }
         return;
       }
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
         return;
       }
-      router.push("/");
+      const isTeacher = data.user?.app_metadata?.role === "teacher";
+      router.push(isTeacher ? "/teacher" : "/");
       router.refresh();
     } catch {
       setError("ระบบยังไม่พร้อมใช้งาน (ยังไม่ได้ตั้งค่า Supabase)");
@@ -71,8 +72,8 @@ export default function LoginPage() {
       <h1>{isSignup ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}</h1>
       <p className="login-sub">
         {isSignup
-          ? "สร้างบัญชีเพื่อเก็บประวัติการส่งโจทย์ของคุณ"
-          : "ล็อกอินเพื่อเก็บประวัติการส่งโจทย์ของคุณ"}
+          ? "สร้างบัญชีนักเรียนเพื่อเก็บประวัติการส่งโจทย์"
+          : "ล็อกอินนักเรียนเพื่อเก็บประวัติการส่งโจทย์"}
       </p>
 
       <form className="login-card" onSubmit={handleSubmit}>
@@ -119,6 +120,12 @@ export default function LoginPage() {
           >
             {isSignup ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
           </button>
+        </p>
+
+        <p style={{ margin: "12px 0 0", fontSize: 13, textAlign: "center" }}>
+          <a href="/teacher-login" style={{ color: "#6b7280" }}>
+            เข้าสู่ระบบสำหรับครู
+          </a>
         </p>
       </form>
     </div>
