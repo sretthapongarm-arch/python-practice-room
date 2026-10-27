@@ -2,7 +2,7 @@
 
 ห้องฝึกโจทย์ Python สำหรับผู้เริ่มต้น นักเรียนเลือกโจทย์ เขียนโค้ด และส่งตรวจได้ทันทีในเบราว์เซอร์ ครูล็อกอินเพื่อดูผลการส่งงานของนักเรียนทั้งห้อง
 
-🌐 **Live Demo:** https://your-project.vercel.app
+🌐 **Live Demo:** https://python-practice-room.vercel.app
 
 📋 **เอกสารความต้องการ:** [MVP Requirements](docs/MVP_REQUIREMENTS.md)
 
