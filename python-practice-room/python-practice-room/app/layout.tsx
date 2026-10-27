@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
+import NavAuth from "@/components/NavAuth";
 
 export const metadata: Metadata = {
   title: "Python Practice Room",
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav>
               <Link href="/">โจทย์</Link>
               <Link href="/teacher">สำหรับครู</Link>
+              <NavAuth />
             </nav>
           </div>
         </header>
