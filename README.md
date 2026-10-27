@@ -4,7 +4,7 @@
 
 🌐 **Live Demo:** https://python-practice-room.vercel.app
 
-📋 **เอกสารความต้องการ:** [MVP Requirements](docs/MVP_REQUIREMENTS.md)
+📋 **เอกสารความต้องการ:** [MVP Requirements](docs/MVP_REQUIREMENTS(1).md)
 
 ---
 
