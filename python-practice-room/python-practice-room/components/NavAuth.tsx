@@ -37,9 +37,11 @@ export default function NavAuth() {
     router.refresh();
   }
 
-  return (
-    <button type="button" className="logout-btn" onClick={handleLogout}>
-      ออกจากระบบ
-    </button>
+   return (
+    <>
+      <Link href="/history">ประวัติของฉัน</Link>
+      <button type="button" className="logout-btn" onClick={handleLogout}>
+        ออกจากระบบ
+      </button>
+    </>
   );
-}
