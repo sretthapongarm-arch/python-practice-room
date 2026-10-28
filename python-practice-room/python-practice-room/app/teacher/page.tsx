@@ -5,7 +5,7 @@ import { getSupabase } from "@/lib/supabase";
 import type { Problem, StoredExecutionResult, Submission } from "@/lib/types";
 
 // เป็นครูเมื่อบัญชีมี app_metadata.role = "teacher" (ตั้งไว้ด้วย SQL ฝั่งแอดมิน ผู้ใช้แก้เองไม่ได้)
-function isTeacher(session: { user?: { app_metadata?: { role?: unknown } } } | null): boolean {
+function isTeacher(session: { user?: { app_metadata?: { [key: string]: unknown } } } | null): boolean {
   return session?.user?.app_metadata?.role === "teacher";
 }
 
