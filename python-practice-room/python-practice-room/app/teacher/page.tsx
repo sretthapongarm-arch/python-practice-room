@@ -4,6 +4,11 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import type { Problem, StoredExecutionResult, Submission } from "@/lib/types";
 
+// เป็นครูเมื่อบัญชีมี app_metadata.role = "teacher" (ตั้งไว้ด้วย SQL ฝั่งแอดมิน ผู้ใช้แก้เองไม่ได้)
+function isTeacher(session: { user?: { app_metadata?: { role?: unknown } } } | null): boolean {
+  return session?.user?.app_metadata?.role === "teacher";
+}
+
 export default function TeacherPage() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [email, setEmail] = useState("");
@@ -20,8 +25,8 @@ export default function TeacherPage() {
   useEffect(() => {
     try {
       const sb = getSupabase();
-      sb.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
-      const { data } = sb.auth.onAuthStateChange((_e, s) => setSignedIn(!!s));
+      sb.auth.getSession().then(({ data }) => setSignedIn(isTeacher(data.session)));
+      const { data } = sb.auth.onAuthStateChange((_e, s) => setSignedIn(isTeacher(s)));
       return () => data.subscription.unsubscribe();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -51,8 +56,12 @@ export default function TeacherPage() {
   async function login(e: React.FormEvent) {
     e.preventDefault();
     setAuthError(null);
-    const { error } = await getSupabase().auth.signInWithPassword({ email, password });
-    if (error) setAuthError(error.message);
+    const { data, error } = await getSupabase().auth.signInWithPassword({ email, password });
+    if (error) return setAuthError(error.message);
+    if (!isTeacher(data.session)) {
+      await getSupabase().auth.signOut();
+      setAuthError("บัญชีนี้ไม่มีสิทธิ์ครู");
+    }
   }
 
   async function toggle(id: string) {
@@ -107,6 +116,11 @@ export default function TeacherPage() {
           <button className="secondary" onClick={load}>รีเฟรช</button>
           <button className="secondary" onClick={() => getSupabase().auth.signOut()}>ออกจากระบบ</button>
         </div>
+      </div>
+
+      <div className="row" style={{ marginBottom: 12 }}>
+        <a href="/teacher/students">📊 สรุปผลรายคน / ส่งออก CSV</a>
+        <a href="/teacher/problems">📝 จัดการโจทย์</a>
       </div>
 
       <div className="card">
