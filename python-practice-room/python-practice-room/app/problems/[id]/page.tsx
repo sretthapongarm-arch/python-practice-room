@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 import { PythonRunner } from "@/lib/runner";
+import { explainPythonError } from "@/lib/pythonHints";
+import { useDraft } from "@/hooks/useDraft";
 import type { ExecutionResult, Problem, TestCase } from "@/lib/types";
 
 const NAME_KEY = "ppr_student_name";
@@ -12,7 +14,12 @@ export default function ProblemPage() {
   const { id } = useParams<{ id: string }>();
   const [problem, setProblem] = useState<Problem | null>(null);
   const [tests, setTests] = useState<TestCase[]>([]);
-  const [code, setCode] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+  // บันทึกร่างโค้ดอัตโนมัติ แยกตามผู้ใช้และโจทย์ (กันนักเรียนหลายคนใช้เครื่องเดียวกัน)
+  const [code, setCode, clearDraft, restored] = useDraft(
+    `draft:${userId ?? "guest"}:${id}`,
+    problem?.starter_code ?? ""
+  );
   const [name, setName] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -31,6 +38,21 @@ export default function ProblemPage() {
     return () => runner.current?.dispose();
   }, []);
 
+  // ถ้าล็อกอินอยู่ ใช้ id ของบัญชีเป็นส่วนหนึ่งของคีย์ร่าง และเติมชื่อให้อัตโนมัติ
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await getSupabase().auth.getSession();
+        const u = data.session?.user;
+        if (u) {
+          setUserId(u.id);
+          const full = u.user_metadata?.full_name;
+          if (full) setName(full);
+        }
+      } catch {}
+    })();
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -43,7 +65,6 @@ export default function ProblemPage() {
         if (t.error) throw t.error;
         setProblem(p.data as Problem);
         setTests(t.data as TestCase[]);
-        setCode((p.data as Problem).starter_code);
       } catch (e) {
         setLoadError(e instanceof Error ? e.message : String(e));
       }
@@ -102,6 +123,13 @@ export default function ProblemPage() {
     setNotice(ins.error ? "บันทึกผลรายข้อไม่สำเร็จ: " + ins.error.message : "บันทึกการส่งงานแล้ว ✓");
   }
 
+  function resetCode() {
+    if (!problem) return;
+    if (!window.confirm("ล้างโค้ดที่เขียนไว้ และกลับไปใช้โค้ดเริ่มต้น?")) return;
+    setCode(problem.starter_code);
+    clearDraft();
+  }
+
   if (loadError) return <div className="card error-text">โหลดโจทย์ไม่สำเร็จ: {loadError}</div>;
   if (!problem) return <p className="muted">กำลังโหลด…</p>;
 
@@ -147,9 +175,13 @@ export default function ProblemPage() {
           <button disabled={busy !== null} onClick={() => execute("submit")}>
             ส่งตรวจ
           </button>
+          <button className="secondary" disabled={busy !== null} onClick={resetCode}>
+            ↺ เริ่มใหม่
+          </button>
           {progress && <span className="muted">{progress}</span>}
         </div>
         {notice && <p className="muted">{notice}</p>}
+        {restored && <p className="muted">💾 กู้คืนร่างโค้ดล่าสุดของคุณแล้ว (บันทึกอัตโนมัติในเครื่องนี้)</p>}
       </div>
 
       {results && (
@@ -180,7 +212,7 @@ export default function ProblemPage() {
                     <pre>{r.actual_output || "(ไม่มี output)"}</pre>
                   </>
                 )}
-                {r.error_message && <pre className="error-text">{r.error_message}</pre>}
+                {r.error_message && <ErrorBox message={r.error_message} />}
               </div>
             );
           })}
@@ -192,4 +224,21 @@ export default function ProblemPage() {
 
 function statusLabel(s: ExecutionResult["status"]) {
   return { passed: "ผ่าน", failed: "ไม่ตรง", error: "เกิดข้อผิดพลาด", timeout: "หมดเวลา" }[s];
+}
+
+// แสดง error พร้อมคำอธิบายภาษาไทย ถ้าอ่านชนิด error ไม่ออกจะแสดงข้อความดิบเหมือนเดิม
+function ErrorBox({ message }: { message: string }) {
+  const h = explainPythonError(message);
+  if (!h || h.type === "Error") return <pre className="error-text">{message}</pre>;
+  return (
+    <div style={{ marginTop: 8, padding: 12, borderRadius: 8, background: "#fef2f2", border: "1px solid #fecaca" }}>
+      <strong className="error-text">{h.title}</strong>
+      {h.line && <span className="muted"> (บรรทัดที่ {h.line})</span>}
+      <p style={{ margin: "6px 0" }}>💡 {h.hint}</p>
+      <details>
+        <summary className="muted">ข้อความ error ดั้งเดิม</summary>
+        <pre className="error-text">{message}</pre>
+      </details>
+    </div>
+  );
 }
