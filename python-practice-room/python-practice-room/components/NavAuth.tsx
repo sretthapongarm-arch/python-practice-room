@@ -45,3 +45,4 @@ export default function NavAuth() {
       </button>
     </>
   );
+}
